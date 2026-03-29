@@ -260,3 +260,93 @@ class WhatsAppRequest(BaseModel):
 class WhatsAppResponse(BaseModel):
     status: str
     detail: str
+
+
+# ────────────────────────────── AI Trader ──────────────────────────────
+
+class BreakoutSignal(BaseModel):
+    """A single detected technical breakout condition."""
+    signal_type: str          # e.g. "52W_HIGH_BREAK", "GOLDEN_CROSS", "RSI_REVERSAL"
+    description: str
+    severity: str             # "strong", "moderate", "weak"
+    triggered_at: Optional[str] = None
+
+
+class AITradingSignal(BaseModel):
+    """Full AI-generated trade signal for a ticker."""
+    id: Optional[int] = None
+    ticker: str
+    fund_style: str           # ark | blackrock | momentum
+    action: str               # BUY | SELL | HOLD | WATCH
+    conviction: int           # 1-10 (10 = highest conviction)
+    entry_price: Optional[float] = None
+    entry_range_low: Optional[float] = None
+    entry_range_high: Optional[float] = None
+    stop_loss: Optional[float] = None
+    price_target: Optional[float] = None
+    target_horizon: Optional[str] = None   # e.g. "3-6 months"
+    position_size_pct: Optional[float] = None  # % of portfolio suggested
+    reasoning: str
+    key_catalysts: list[str] = []
+    key_risks: list[str] = []
+    breakout_signals: list[BreakoutSignal] = []
+    composite_score: Optional[int] = None
+    current_price: Optional[float] = None
+    generated_at: str
+
+
+class WatchlistScanRequest(BaseModel):
+    fund_style: str = "ark"   # ark | blackrock | momentum
+    min_conviction: int = 6   # Only return signals with conviction >= this
+
+
+class WatchlistScanResult(BaseModel):
+    scanned: int
+    signals_generated: int
+    buy_signals: list[AITradingSignal]
+    sell_signals: list[AITradingSignal]
+    watch_signals: list[AITradingSignal]
+    scan_duration_seconds: Optional[float] = None
+    scanned_at: str
+
+
+class AIPortfolioPosition(BaseModel):
+    """An AI-managed position in the virtual portfolio."""
+    id: Optional[int] = None
+    ticker: str
+    direction: str            # LONG | SHORT
+    shares: float
+    entry_price: float
+    current_price: Optional[float] = None
+    stop_loss: Optional[float] = None
+    price_target: Optional[float] = None
+    fund_style: str
+    conviction: int
+    reasoning: str
+    status: str = "OPEN"      # OPEN | CLOSED
+    pnl_absolute: Optional[float] = None
+    pnl_percent: Optional[float] = None
+    opened_at: str
+    closed_at: Optional[str] = None
+
+
+class AIPortfolioSummary(BaseModel):
+    positions: list[AIPortfolioPosition]
+    total_positions: int
+    open_positions: int
+    total_unrealized_pnl: float
+    style: str
+    last_updated: str
+
+
+class ExecuteTradeRequest(BaseModel):
+    """Ask AI to decide & record a trade based on its latest signal."""
+    ticker: str
+    fund_style: str = "ark"
+    portfolio_value: float = 100000  # virtual portfolio size in USD
+    force_action: Optional[str] = None  # override: BUY | SELL | HOLD
+
+
+class StyleConfigRequest(BaseModel):
+    fund_style: str  # ark | blackrock | momentum
+    portfolio_value: float = 100000

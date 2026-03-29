@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.database.db import init_db
 from app.routers import analytics, journal, notifications, research, watchlist
+from app.routers import ai_trader
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ app.include_router(watchlist.router)
 app.include_router(journal.router)
 app.include_router(analytics.router)
 app.include_router(notifications.router)
+app.include_router(ai_trader.router)
 
 
 @app.get("/")
@@ -44,6 +46,13 @@ async def root():
             "analytics": "GET /api/v1/analytics/performance",
             "strategies": "GET /api/v1/analytics/strategies",
             "whatsapp": "POST /api/v1/notifications/whatsapp",
+            "ai_analyze": "POST /api/v1/ai-trader/analyze/{ticker}",
+            "ai_scan": "POST /api/v1/ai-trader/scan",
+            "ai_signals": "GET /api/v1/ai-trader/signals",
+            "ai_breakouts": "GET /api/v1/ai-trader/breakouts/{ticker}",
+            "ai_execute": "POST /api/v1/ai-trader/execute",
+            "ai_portfolio": "GET /api/v1/ai-trader/portfolio",
+            "ai_styles": "GET /api/v1/ai-trader/styles",
         },
     }
 

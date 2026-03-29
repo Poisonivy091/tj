@@ -82,6 +82,47 @@ def init_db():
             win_count INTEGER DEFAULT 0,
             loss_count INTEGER DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS ai_signals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker TEXT NOT NULL,
+            fund_style TEXT NOT NULL,
+            action TEXT NOT NULL,
+            conviction INTEGER NOT NULL,
+            entry_price REAL,
+            entry_range_low REAL,
+            entry_range_high REAL,
+            stop_loss REAL,
+            price_target REAL,
+            target_horizon TEXT,
+            position_size_pct REAL,
+            reasoning TEXT NOT NULL,
+            key_catalysts TEXT DEFAULT '[]',
+            key_risks TEXT DEFAULT '[]',
+            breakout_signals TEXT DEFAULT '[]',
+            composite_score INTEGER,
+            current_price REAL,
+            generated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS ai_portfolio (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker TEXT NOT NULL,
+            direction TEXT NOT NULL DEFAULT 'LONG',
+            shares REAL NOT NULL,
+            entry_price REAL NOT NULL,
+            current_price REAL,
+            stop_loss REAL,
+            price_target REAL,
+            fund_style TEXT NOT NULL,
+            conviction INTEGER NOT NULL,
+            reasoning TEXT NOT NULL,
+            status TEXT DEFAULT 'OPEN',
+            pnl_absolute REAL,
+            pnl_percent REAL,
+            opened_at TEXT NOT NULL,
+            closed_at TEXT
+        );
     """)
     conn.commit()
     conn.close()
