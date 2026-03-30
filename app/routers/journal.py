@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
@@ -178,7 +179,7 @@ async def close_trade(trade_id: str, req: TradeExitRequest):
 
 
 @router.get("/trades", response_model=list[TradeRecord])
-async def list_trades(status: str | None = None, ticker: str | None = None):
+async def list_trades(status: Optional[str] = None, ticker: Optional[str] = None):
     """List all trades, optionally filtered by status or ticker."""
     db = get_db()
     try:

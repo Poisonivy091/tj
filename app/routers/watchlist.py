@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/api/v1/watchlist", tags=["Watchlist"])
 
 
 @router.get("", response_model=list[WatchlistItem])
-async def list_watchlist(category: str | None = None):
+async def list_watchlist(category: Optional[str] = None):
     """List all watchlist items, optionally filtered by category."""
     db = get_db()
     try:
@@ -81,7 +82,7 @@ async def create_alert(req: AlertCreateRequest):
 
 
 @router.get("/alerts", response_model=list[AlertItem])
-async def list_alerts(ticker: str | None = None):
+async def list_alerts(ticker: Optional[str] = None):
     """List all alerts, optionally filtered by ticker."""
     db = get_db()
     try:

@@ -4,6 +4,7 @@ Endpoints for AI-powered signal generation, watchlist scanning, and virtual port
 """
 import json
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
@@ -107,9 +108,9 @@ async def scan_all_watchlist(req: WatchlistScanRequest):
 
 @router.get("/signals", response_model=list[AITradingSignal])
 async def list_signals(
-    ticker: str | None = None,
-    fund_style: str | None = None,
-    action: str | None = None,
+    ticker: Optional[str] = None,
+    fund_style: Optional[str] = None,
+    action: Optional[str] = None,
     limit: int = 50,
 ):
     """List previously generated AI signals, newest first."""
@@ -225,7 +226,7 @@ async def execute_trade(req: ExecuteTradeRequest):
 
 
 @router.get("/portfolio", response_model=AIPortfolioSummary)
-async def get_portfolio(fund_style: str | None = None, refresh_prices: bool = False):
+async def get_portfolio(fund_style: Optional[str] = None, refresh_prices: bool = False):
     """
     View the AI-managed virtual portfolio.
     Set refresh_prices=true to fetch current market prices and recalculate P&L.
@@ -279,7 +280,7 @@ async def get_portfolio(fund_style: str | None = None, refresh_prices: bool = Fa
 
 
 @router.delete("/portfolio/{position_id}")
-async def close_position(position_id: int, exit_price: float | None = None):
+async def close_position(position_id: int, exit_price: Optional[float] = None):
     """Manually close a virtual portfolio position."""
     db = get_db()
     try:
