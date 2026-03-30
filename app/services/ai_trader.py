@@ -1,13 +1,11 @@
 """
 AI Stock Trader Service
 Analyzes stocks like a professional fund manager at ARK, BlackRock, or a momentum desk.
-Uses Claude to reason through each position and generate structured buy/sell/hold signals.
+Supports Groq (free) and Anthropic (Claude) as AI providers.
 """
 import json
 import time
 from datetime import datetime, timezone
-
-import anthropic
 
 from app.config.settings import settings
 from app.models.schemas import (
@@ -290,16 +288,9 @@ Respond ONLY with a valid JSON object in exactly this format (no markdown, no ex
 }}"""
 
 
-def _call_claude(prompt: str) -> dict:
-    """Call Claude API and parse JSON response."""
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw = message.content[0].text.strip()
-    # Strip markdown code fences if present
+def _parse_json_response(raw: str) -> dict:
+    """Strip markdown fences and parse JSON."""
+    raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -307,10 +298,49 @@ def _call_claude(prompt: str) -> dict:
     return json.loads(raw.strip())
 
 
+def _call_ai(prompt: str) -> dict:
+    """Call the configured AI provider and return parsed JSON."""
+    provider = settings.AI_PROVIDER.lower()
+
+    if provider == "groq" and settings.GROQ_API_KEY:
+        import httpx
+        resp = httpx.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 1024,
+                "temperature": 0.2,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"]
+        return _parse_json_response(raw)
+
+    elif settings.ANTHROPIC_API_KEY:
+        import anthropic
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = message.content[0].text
+        return _parse_json_response(raw)
+
+    else:
+        raise RuntimeError("No AI provider configured. Set GROQ_API_KEY or ANTHROPIC_API_KEY.")
+
+
 # ──────────────────────── Main Signal Generator ────────────────────────
 
 async def generate_signal(ticker: str, style: str = "ark") -> AITradingSignal:
-    """Full pipeline: research → breakout detection → Claude analysis → signal."""
+    """Full pipeline: research → breakout detection → AI analysis → signal."""
     style = style.lower()
     if style not in FUND_PERSONAS:
         style = "ark"
@@ -320,7 +350,8 @@ async def generate_signal(ticker: str, style: str = "ark") -> AITradingSignal:
 
     now = datetime.now(timezone.utc).isoformat()
 
-    if not settings.ANTHROPIC_API_KEY:
+    has_ai = bool(settings.GROQ_API_KEY or settings.ANTHROPIC_API_KEY)
+    if not has_ai:
         # Fallback: rule-based signal when no API key
         action = "HOLD"
         conviction = 5
@@ -344,7 +375,7 @@ async def generate_signal(ticker: str, style: str = "ark") -> AITradingSignal:
             price_target=round(report.quote.current_price * 1.20, 2) if action == "BUY" else None,
             target_horizon="3-6 months",
             position_size_pct=3.0,
-            reasoning="Rule-based signal (no Claude API key configured). Set ANTHROPIC_API_KEY for AI analysis.",
+            reasoning="Rule-based signal (no AI key configured). Set GROQ_API_KEY or ANTHROPIC_API_KEY.",
             key_catalysts=[f"Composite score: {report.composite_score}/100"],
             key_risks=["No AI analysis available"],
             breakout_signals=breakouts,
@@ -354,7 +385,7 @@ async def generate_signal(ticker: str, style: str = "ark") -> AITradingSignal:
         )
 
     prompt = _build_prompt(report, style, breakouts)
-    result = _call_claude(prompt)
+    result = _call_ai(prompt)
 
     return AITradingSignal(
         ticker=ticker.upper(),

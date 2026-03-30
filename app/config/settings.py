@@ -33,6 +33,12 @@ class Settings:
     # Claude / Anthropic
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 
+    # Groq (free tier — llama3-70b)
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+
+    # Which AI provider to use: "groq" | "anthropic"
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "groq")
+
     # Database
     DB_PATH: str = os.getenv("TJ_DB_PATH", "tj.db")
 
